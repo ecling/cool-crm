@@ -1,0 +1,23 @@
+# This file is the entry point to configure your own HTTP routes.
+# Files in the routes/ subdirectory configure the routes for your dependencies.
+
+#index:
+#    path: /
+#    defaults: { _controller: 'App\Controller\DefaultController::index' }
+
+register:
+    path: /register
+    controller: App\Controller\AuthController::register
+    methods: POST
+
+api:
+    path: /api
+    controller: App\Controller\AuthController::api
+
+login_check:
+    path:     /api/V1/login_check
+    ##methods:  [POST]
+
+lucky_number:
+    path: /lucky/number
+    controller: App\AppBundle\Controller\LuckyController::numberAction
