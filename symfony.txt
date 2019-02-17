@@ -1,0 +1,67 @@
+symfony
+php bin/console server:run
+
+php bin/console doctrine:database:create
+php bin/console doctrine:schema:update --force
+
+curl -X POST http://localhost:8000/register -d _username=johndoe -d _password=test
+
+curl -X POST -H "Content-Type: application/json" http://localhost:8000/login_check -d '{"username":"johndoe","password":"test"}'
+
+curl -H "Authorization: Bearer [TOKEN]" http://localhost:8000/api
+
+
+curl -H 'content-type: application/json' -v -X GET http://127.0.0.1:8000/api/books 
+curl -H 'content-type: application/json' -v -X GET http://127.0.0.1:8000/api/books/:id
+curl -H 'content-type: application/json' -v -X POST -d '{"title":"Foo bar","price":"19.99"}' http://127.0.0.1:8000/api/book/new 
+curl -H 'content-type: application/json' -v -X PUT -d '{"title":"Foo bar","price":"19.99"}' http://127.0.0.1:8000/api/books/edit/:id
+curl -H 'content-type: application/json' -v -X DELETE http://127.0.0.1:8000/api/books/remove/:id
+
+
+
+参考链接：
+symfony 4 参考文档
+https://symfony.com/doc/current/index.html#gsc.tab=0
+
+JWT github项目 + 说明文档
+https://github.com/lexik/LexikJWTAuthenticationBundle
+
+JWT 实例项目
+https://github.com/chalasr/lexik-jwt-authentication-sandbox
+
+symfony api rest 
+composer require friendsofsymfony/rest-bundle
+
+
+symfony 4 rest api实例
+https://github.com/Tony133/Symfony4ApiRest
+
+
+element ui 说明文档
+http://element.eleme.io/#/zh-CN
+
+
+基于element ui 后台管理 说明文档
+https://panjiachen.github.io/vue-element-admin-site/zh/guide/
+
+基于element ui 后台管理github项目
+https://github.com/PanJiaChen/vue-element-admin
+
+基础模板
+https://github.com/PanJiaChen/vue-admin-template
+
+
+Vue2.0用户权限控制解决方案
+https://github.com/tower1229/Vue-Access-Control
+
+
+Vue Draggable(拖动)
+https://github.com/SortableJS/Vue.Draggable
+
+
+Excel 上传导出处理
+https://github.com/SheetJS/js-xlsx
+
+
+
+
