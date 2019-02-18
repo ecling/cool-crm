@@ -5,6 +5,8 @@ use App\Kernel;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Debug\Debug;
+use Console\ProductTranslate;
+use Console\ProductCreate;
 
 set_time_limit(0);
 
@@ -35,4 +37,6 @@ if ($_SERVER['APP_DEBUG']) {
 
 $kernel = new Kernel($_SERVER['APP_ENV'], (bool) $_SERVER['APP_DEBUG']);
 $application = new Application($kernel);
+$application->add(new ProductTranslate());
+$application->add(new ProductCreate());
 $application->run($input);

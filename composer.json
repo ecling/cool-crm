@@ -43,7 +43,8 @@
     },
     "autoload": {
         "psr-4": {
-            "App\\": "src/"
+            "App\\": "src/",
+            "Console\\":"console/"
         }
     },
     "autoload-dev": {
