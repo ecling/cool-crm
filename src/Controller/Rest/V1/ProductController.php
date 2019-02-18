@@ -60,10 +60,17 @@ class ProductController extends FOSRestController
         $product->setCategoryIds($postData['category_ids']);
         $product->setCategory2Ids($postData['category2_ids']);
         $product->setWebsiteIds($postData['website_ids']);
-        $product->setStatus(1);
+        $product->setStatus(3);
         $product->setCreatedAt(date('Y-m-d H:i:s',time()));
         $em->persist($product);
         $em->flush();
+
+        //插入产品站点对应表
+        $product_id = $product->getProductId();
+        foreach($postData['website_ids'] as $_website) {
+            //3为待上传
+            $em->getConnection()->insert('product_website', array('website_id'=>$_website,'product_id'=>$product_id,'online_status'=>3));
+        }
 
         return $product;
         //return $request;
@@ -124,6 +131,12 @@ class ProductController extends FOSRestController
         $product->setStatus(1);
 
         $em->flush();
+
+        //更新产品站点对应表
+        //获取产品现有原来站点
+        foreach ($postData['website_ids'] as $_website) {
+
+        }
 
         //return $request->request->all();
         return $postData['addition_images'];
