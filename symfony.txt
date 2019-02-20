@@ -19,47 +19,47 @@ curl -H 'content-type: application/json' -v -X DELETE http://127.0.0.1:8000/api/
 
 
 
-²Î¿¼Á´½Ó£º
-symfony 4 ²Î¿¼ÎÄµµ
+å‚è€ƒé“¾æ¥ï¼š
+symfony 4 å‚è€ƒæ–‡æ¡£
 https://symfony.com/doc/current/index.html#gsc.tab=0
 
-JWT githubÏîÄ¿ + ËµÃ÷ÎÄµµ
+JWT githubé¡¹ç›® + è¯´æ˜æ–‡æ¡£
 https://github.com/lexik/LexikJWTAuthenticationBundle
 
-JWT ÊµÀıÏîÄ¿
+JWT å®ä¾‹é¡¹ç›®
 https://github.com/chalasr/lexik-jwt-authentication-sandbox
 
 symfony api rest 
 composer require friendsofsymfony/rest-bundle
 
 
-symfony 4 rest apiÊµÀı
+symfony 4 rest apiå®ä¾‹
 https://github.com/Tony133/Symfony4ApiRest
 
 
-element ui ËµÃ÷ÎÄµµ
+element ui è¯´æ˜æ–‡æ¡£
 http://element.eleme.io/#/zh-CN
 
 
-»ùÓÚelement ui ºóÌ¨¹ÜÀí ËµÃ÷ÎÄµµ
+åŸºäºelement ui åå°ç®¡ç† è¯´æ˜æ–‡æ¡£
 https://panjiachen.github.io/vue-element-admin-site/zh/guide/
 
-»ùÓÚelement ui ºóÌ¨¹ÜÀígithubÏîÄ¿
+åŸºäºelement ui åå°ç®¡ç†githubé¡¹ç›®
 https://github.com/PanJiaChen/vue-element-admin
 
-»ù´¡Ä£°å
+åŸºç¡€æ¨¡æ¿
 https://github.com/PanJiaChen/vue-admin-template
 
 
-Vue2.0ÓÃ»§È¨ÏŞ¿ØÖÆ½â¾ö·½°¸
+Vue2.0ç”¨æˆ·æƒé™æ§åˆ¶è§£å†³æ–¹æ¡ˆ
 https://github.com/tower1229/Vue-Access-Control
 
 
-Vue Draggable(ÍÏ¶¯)
+Vue Draggable(æ‹–åŠ¨)
 https://github.com/SortableJS/Vue.Draggable
 
 
-Excel ÉÏ´«µ¼³ö´¦Àí
+Excel ä¸Šä¼ å¯¼å‡ºå¤„ç†
 https://github.com/SheetJS/js-xlsx
 
 

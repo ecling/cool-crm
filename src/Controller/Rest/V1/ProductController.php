@@ -6,13 +6,15 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use App\Entity\Product;
 /**
  * @Route("/V1")
  */
 class ProductController extends FOSRestController
 {
-    protected $_domain = 'http://localhost:8000/media/catalog/product/';
+    //protected $_domain = 'http://localhost:8000/media/catalog/product/';
+    protected $_domain = '';
     /**
      * @Route("/product/add", name="add_product")
      */
@@ -21,6 +23,16 @@ class ProductController extends FOSRestController
         $postData = $request->request->all();
 
         $em = $this->getDoctrine()->getManager();
+
+        //判断SKU是否存在
+        $sql = "SELECT * FROM `product` WHERE sku='".$postData['sku']."' limit 1";
+        $statement = $em->getConnection()->prepare($sql);
+        $statement->execute();
+        $temp_product = $statement->fetch();
+        if ($temp_product) {
+            $error = array('code'=>'4000','message'=>'SKU must be unique');
+            return $error;
+        }
 
         $main_image = [];
         if(isset($postData['main_image'])){
@@ -68,7 +80,7 @@ class ProductController extends FOSRestController
         //插入产品站点对应表
         $product_id = $product->getProductId();
         foreach($postData['website_ids'] as $_website) {
-            //3为待上传
+            //状态3为待上传
             $em->getConnection()->insert('product_website', array('website_id'=>$_website,'product_id'=>$product_id,'online_status'=>3));
         }
 
@@ -128,19 +140,44 @@ class ProductController extends FOSRestController
         $product->setCategoryIds($postData['category_ids']);
         $product->setCategory2Ids($postData['category2_ids']);
         $product->setWebsiteIds($postData['website_ids']);
-        $product->setStatus(1);
+        //$product->setStatus(1);
 
         $em->flush();
 
         //更新产品站点对应表
         //获取产品现有原来站点
-        foreach ($postData['website_ids'] as $_website) {
+        $product_id = $product->getProductId();
+        $web_sql = "SELECT * FROM `product_website` WHERE product_id=$product_id";
+        $statement = $em->getConnection()->prepare($web_sql);
+        $statement->execute();
+        $ori_websites = $statement->fetchAll();
+        $ori_ids = array();
 
+        //查找产品下架站点
+        foreach ($ori_websites as $_website) {
+            $ori_ids[] = $_website['website_id'];
+            if(!in_array($_website['website_id'],$postData['website_ids'])){
+                //下架待更新
+                $em->getConnection()->update('product_website', array('online_status'=>5),array('website_id'=>$_website['website_id'],'product_id'=>$product_id));
+            }else{
+                //已经下架或者待下架的产品变成状态4,待同步
+                if($_website['online_status']==2||$_website['online_status']==5){
+                    $em->getConnection()->update('product_website', array('online_status'=>4),array('website_id'=>$_website['website_id'],'product_id'=>$product_id));
+                }
+            }
+        }
+
+        //查找产品新增站点
+        foreach ($postData['website_ids'] as $_website) {
+            if(!in_array($_website,$ori_ids)){
+                //状态3待上传
+                $em->getConnection()->insert('product_website', array('website_id'=>$_website,'product_id'=>$product_id,'online_status'=>3));
+            }
         }
 
         //return $request->request->all();
-        return $postData['addition_images'];
-        //return $product;
+        //return $postData['addition_images'];
+        return $product;
     }
 
     /**
@@ -157,7 +194,7 @@ class ProductController extends FOSRestController
 
         $page = $request->query->get('page');
         $limit = $request->query->get('limit');
-        $sql = "SELECT * FROM product where `status`!=0 limit ".($page-1)*$limit.",".$limit;
+        $sql = "SELECT * FROM product where `status`!=0 order by product_id DESC limit ".($page-1)*$limit.",".$limit;
         $statement = $em->getConnection()->prepare($sql);
         $statement->execute();
         $item_result = $statement->fetchAll();
@@ -193,7 +230,7 @@ class ProductController extends FOSRestController
                 $_item['main_image'] = explode(',',$_item['main_image']);
                 $_tempimg = [];
                 foreach ($_item['main_image'] as $_img) {
-                    $_tempimg[] = array('name'=>$_img,'url'=>$this->_domain.$_img);
+                    $_tempimg[] = array('name'=>$_img,'url'=>$this->getParameter('productimagebaseurl').$_img);
                 }
                 $_item['main_image'] = $_tempimg;
             }else{
@@ -203,7 +240,7 @@ class ProductController extends FOSRestController
                 $_item['addition_images'] = explode(',',$_item['addition_images']);
                 $_tempimg = [];
                 foreach ($_item['addition_images'] as $_img) {
-                    $_tempimg[] = array('name'=>$_img,'url'=>$this->_domain.$_img);
+                    $_tempimg[] = array('name'=>$_img,'url'=>$this->getParameter('productimagebaseurl').$_img);
                 }
                 $_item['addition_images'] = $_tempimg;
             }else{
@@ -246,7 +283,7 @@ class ProductController extends FOSRestController
         }
 
         if(isset($file_name)){
-            $result = array('name'=>$dir.'/'.$file_name,'url'=>$this->_domain.$dir.'/'.$file_name);
+            $result = array('name'=>$dir.'/'.$file_name,'url'=>$this->getParameter('productimagebaseurl').$dir.'/'.$file_name);
             return $result;
         }else{
             throw $this->createNotFoundException(
@@ -287,7 +324,7 @@ class ProductController extends FOSRestController
         $statement->execute();
         $item_result = $statement->fetchAll();
 
-        return $this->getTree(3,$item_result);
+        return $this->getTree(2,$item_result);
     }
 
     protected function getTree($parent_id,$items)

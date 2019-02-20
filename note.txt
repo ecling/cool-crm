@@ -2,7 +2,7 @@ composer config -g repo.packagist composer https://packagist.phpcomposer.com
 
 产品状态说明：1正常，2禁用，3待翻译，4资料待完善
 
-产品同步状态：1现在，2下架，3待上传，4待更新
+产品同步状态：1在线，2下架，3待上传, 4待更新, 5下架待更新
 
 站点产品对应关系表增加online_images，json格式
 [
