@@ -12,7 +12,7 @@ use App\Entity\Product;
  */
 class ProductController extends FOSRestController
 {
-    protected $_domain = 'http://localhost:8001/media/catalog/product/';
+    protected $_domain = 'http://localhost:8000/media/catalog/product/';
     /**
      * @Route("/product/add", name="add_product")
      */
@@ -229,7 +229,7 @@ class ProductController extends FOSRestController
     {
         if($_FILES['file']['type']=='image/jpeg'){
             //图片小于10M
-            if($_FILES['file']['size']<100000){
+            if($_FILES['file']['size']<1000000){
                 if ($_FILES["file"]["error"] > 0){
 
                 }else{
