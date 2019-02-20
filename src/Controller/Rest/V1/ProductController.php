@@ -181,6 +181,31 @@ class ProductController extends FOSRestController
     }
 
     /**
+     * @Route("/product/import", name="import_products")
+     */
+    public function importProductsAction(Request $request)
+    {
+        $em = $this->getDoctrine()->getManager();
+
+        $postData = $request->request->all();
+        foreach($postData as $item){
+            $sql = '';
+            if(!empty($item['SKU'])){
+                $sql = "SELECT product_id FROM product WHERE sku='".$item['SKU']."'";
+                $statement = $em->getConnection()->prepare($sql);
+                $statement->execute();
+                $product = $statement->fetch();
+                if(!$product){
+                    //状态4资料待完善
+                    $row = array('sku'=>$item['SKU'],'purchase_price'=>$item['cost'],'weight'=>$item['weight'],'status'=>4);
+                    $em->getConnection()->insert('product',$row);
+                }
+            }
+        }
+        return $postData;
+    }
+
+    /**
      * @Route("/product/list", name="get_products")
      */
     public function getProductsAction(Request $request)
@@ -252,7 +277,7 @@ class ProductController extends FOSRestController
         $result = array(
             'data' => array(
                 'items' => $item_result,
-                'total' => $total_result['cnt']
+                'total' => (int)$total_result['cnt']
             )
         );
 
