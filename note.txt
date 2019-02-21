@@ -12,3 +12,9 @@ composer config -g repo.packagist composer https://packagist.phpcomposer.com
 ]
 
 产品表增加待更新字段update_fields，逗号分隔待更新字段，修改产品的时候保存和原来数据不同的字段
+
+站点图片取值类型： 1取全部，2取附加图
+
+产品站点对应表，增加online_color,online_size
+
+产品表只有SKU，不能为空，批量导入的时候只有SKU关键信息

@@ -126,6 +126,45 @@ class ProductController extends FOSRestController
             }
         }
 
+        //判断哪些字段有变更
+        $update_fields = array();
+        if($product->getSku()!=$postData['sku']){
+            $update_fields[] = 'sku';
+        }
+        if($product->getPurchasePrice()!=$postData['purchase_price']){
+            $update_fields[] = 'purchase_price';
+        }
+        if($product->getShippingCost()!=$postData['shipping_cost']){
+            $update_fields[] = 'shipping_cost';
+        }
+        if($product->getWeight()!=$postData['weight']){
+            $update_fields[] = 'weight';
+        }
+        if($product->getName()!=$postData['name']){
+            $update_fields[] = 'name';
+        }
+        if($product->getDescription()!=$postData['description']){
+            $update_fields[] = 'description';
+        }
+        if($product->getColor()!=$postData['color']){
+            $update_fields[] = 'color';
+        }
+        if($product->getSize()!=$postData['size']){
+            $update_fields[] = 'size';
+        }
+        if($product->getMainImage()!=$main_image){
+            $update_fields[] = 'main_image';
+        }
+        if($product->getAdditionImages()!=$addition_images){
+            $update_fields[] = 'addition_images';
+        }
+        if($product->getCategoryIds()!=$postData['category_ids']){
+            $update_fields[] = 'category_ids';
+        }
+        if($product->getCategory2Ids()!=$postData['category2_ids']){
+            $update_fields[] = 'category2_ids';
+        }
+
         $product->setSku($postData['sku']);
         $product->setPurchasePrice($postData['purchase_price']);
         $product->setShippingCost($postData['shipping_cost']);
@@ -140,7 +179,13 @@ class ProductController extends FOSRestController
         $product->setCategoryIds($postData['category_ids']);
         $product->setCategory2Ids($postData['category2_ids']);
         $product->setWebsiteIds($postData['website_ids']);
-        //$product->setStatus(1);
+        if(!empty($update_fields)){
+            $product->setUpdateFields($update_fields);
+        }
+        //如果原来状态是4资料待完善，则状态变更3待翻译
+        if($product->getStatus()==4) {
+            $product->setStatus(3);
+        }
 
         $em->flush();
 
@@ -160,8 +205,12 @@ class ProductController extends FOSRestController
                 //下架待更新
                 $em->getConnection()->update('product_website', array('online_status'=>5),array('website_id'=>$_website['website_id'],'product_id'=>$product_id));
             }else{
-                //已经下架或者待下架的产品变成状态4,待同步
-                if($_website['online_status']==2||$_website['online_status']==5){
+                //已经下架或者待下架的产品变成状态4待更新
+                if(
+                    $_website['online_status']==2||
+                    $_website['online_status']==5||
+                    ($_website['online_status']==1&&!empty($update_fields))
+                ){
                     $em->getConnection()->update('product_website', array('online_status'=>4),array('website_id'=>$_website['website_id'],'product_id'=>$product_id));
                 }
             }

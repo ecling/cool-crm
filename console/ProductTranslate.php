@@ -37,10 +37,15 @@ class ProductTranslate extends ContainerAwareCommand{
         $product_id = $product['product_id'];
         $product_name = $product['name'];
         $product_description = $product['description'];
-        $stores = ['it','nl','pt','au','de','es','fr'];
+
+        //切分描述
+        $orig_description_row = preg_split("/(<[^>]+?>)/si",$product_description, -1,PREG_SPLIT_NO_EMPTY| PREG_SPLIT_DELIM_CAPTURE);
+
+        //$stores = ['it','nl','pt','au','de','es','fr'];
+        $stores = ['it','nl','pt','de','es','fr'];
         foreach($stores as $_store){
             //翻译标题
-            $handle = curl_init('https://www.googleapis.com/language/translate/v2?key=AIzaSyAYNByJiGLfhiF3HujNKcHkm_KVazOCFkw&q='.$product_name.'&source=en&target='.$_store);
+            $handle = curl_init('https://www.googleapis.com/language/translate/v2?key=AIzaSyAYNByJiGLfhiF3HujNKcHkm_KVazOCFkw&q='.rawurlencode($product_name).'&source=en&target='.$_store);
             curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($handle, CURLOPT_SSL_VERIFYHOST, '0');
             curl_setopt($handle, CURLOPT_SSL_VERIFYPEER, '0');
@@ -56,8 +61,6 @@ class ProductTranslate extends ContainerAwareCommand{
             ${$title} = $new_name;
 
             //翻译描述
-            //切分描述
-            $orig_description_row = preg_split("/(<[^>]+?>)/si",$product_description, -1,PREG_SPLIT_NO_EMPTY| PREG_SPLIT_DELIM_CAPTURE);
             $des_tran_index = array();
             $des_query = '';
             $index = 0;
@@ -65,7 +68,7 @@ class ProductTranslate extends ContainerAwareCommand{
                 if(preg_match("/(<[^>]+?>)/si",$orig_description_row[$i])||preg_match("/^[\s]*?[\s]$/si",$orig_description_row[$i])||(trim($orig_description_row[$i])=='&nbsp;')){
 
                 }else{
-                    $des_query .= '&q='.urlencode($orig_description_row[$i]);
+                    $des_query .= '&q='.rawurlencode($orig_description_row[$i]);
                     $des_tran_index[$i] = $index;
                     $index++;
                     //$des_tran_text[] = $orig_description_row[$i];
@@ -74,7 +77,7 @@ class ProductTranslate extends ContainerAwareCommand{
             }
 
             //google 翻译
-            $handle = curl_init('https://www.googleapis.com/language/translate/v2?key=AIzaSyAYNByJiGLfhiF3HujNKcHkm_KVazOCFkw'.$des_query.'&source=en&target='.$orig_lan);
+            $handle = curl_init('https://www.googleapis.com/language/translate/v2?key=AIzaSyAYNByJiGLfhiF3HujNKcHkm_KVazOCFkw'.$des_query.'&source=en&target='.$_store);
             curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($handle, CURLOPT_SSL_VERIFYHOST, '0');
             curl_setopt($handle, CURLOPT_SSL_VERIFYPEER, '0');
@@ -112,14 +115,12 @@ class ProductTranslate extends ContainerAwareCommand{
                 'name_it'=>$name_it,
                 'name_nl'=>$name_nl,
                 'name_pt'=>$name_pt,
-                'name_au'=>$name_au,
                 'name_de'=>$name_de,
                 'name_es'=>$name_es,
                 'name_fr'=>$name_fr,
                 'description_it'=>$description_it,
                 'description_nl'=>$description_nl,
                 'description_pt'=>$description_pt,
-                'description_au'=>$description_au,
                 'description_de'=>$description_de,
                 'description_es'=>$description_es,
                 'description_fr'=>$description_fr
@@ -135,14 +136,12 @@ class ProductTranslate extends ContainerAwareCommand{
                     'name_it'=>$name_it,
                     'name_nl'=>$name_nl,
                     'name_pt'=>$name_pt,
-                    'name_au'=>$name_au,
                     'name_de'=>$name_de,
                     'name_es'=>$name_es,
                     'name_fr'=>$name_fr,
                     'description_it'=>$description_it,
                     'description_nl'=>$description_nl,
                     'description_pt'=>$description_pt,
-                    'description_au'=>$description_au,
                     'description_de'=>$description_de,
                     'description_es'=>$description_es,
                     'description_fr'=>$description_fr

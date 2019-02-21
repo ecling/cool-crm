@@ -87,6 +87,11 @@ class Product
     private $website_ids;
 
     /**
+     * @ORM\Column(type="simple_array")
+     */
+    private $update_fields;
+
+    /**
      * @ORM\Column(type="integer")
      */
     private $status;
@@ -120,7 +125,7 @@ class Product
         $this->purchase_price = $purchase_price;
     }
 
-    public function getPurchasePrice($purchase_price){
+    public function getPurchasePrice(){
         return $this->purchase_price;
     }
 
@@ -242,6 +247,16 @@ class Product
     public function getWebsiteIds()
     {
         return $this->website_ids;
+    }
+
+    public function setUpdateFields($update_fields)
+    {
+        $this->update_fields = $update_fields;
+    }
+
+    public function getUpdateFields()
+    {
+        return $this->update_fields;
     }
 
     public function setStatus($status)

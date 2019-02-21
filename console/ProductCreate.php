@@ -26,10 +26,12 @@ class ProductCreate extends ContainerAwareCommand{
     {
         $em = $this->getContainer()->get('doctrine');
 
-        //查询待上传产品
-        $sql = "SELECT p.product_id,w.* FROM product_website AS p
-LEFT JOIN website AS w ON p.website_id=w.website_id
-WHERE p.online_status=3 limit 1";
+        //查询待上传产品，站点状态为3，产品状态为1
+        $sql = "SELECT pw.*,w.* FROM `product_website` AS pw
+LEFT JOIN `product` AS p ON pw.`product_id`=p.`product_id`
+LEFT JOIN `website` AS w ON w.`website_id`= pw.`website_id`
+WHERE pw.`online_status`=3 AND p.`status`=1
+LIMIT 1";
         $statement = $em->getConnection()->prepare($sql);
         $statement->execute();
         $product_website = $statement->fetch();
@@ -44,14 +46,25 @@ LIMIT 1;";
             $statement->execute();
             $product = $statement->fetch();
 
-            $categorys = array_merge(explode(',',$product['category_ids']),explode(',',$product['category2_ids']));
-            $categorys = array(49,53,62,80,81);
+            if(empty($product['category_ids'])){
+                $category_ids = [];
+            }else{
+                $category_ids = explode(',',$product['category_ids']);
+            }
+            if(empty($product['category2_ids'])){
+                $category2_ids = [];
+            }else{
+                $category2_ids = explode(',',$product['category2_ids']);
+            }
+            $categorys = array_merge($category_ids,$category2_ids);
+            //网站根目录
+            $categorys[] = 2;
 
-            $client = new \SoapClient('http://test.bellecat.com/index.php/api/soap/?wsdl');
-            $session = $client->login('admin', 'admin123');
+            $client = new \SoapClient($product_website['api_url']);
+            $session = $client->login($product_website['api_user'], $product_website['api_key']);
 
             //产品基础资料上传
-            $result = $client->call($session, 'catalog_product.create', array('simple', 4, 'test004', array(
+            $result = $client->call($session, 'catalog_product.create', array('simple', 4, $product['sku'], array(
                 'categories' => $categorys,
                 'websites' => array(1),
                 'name' => $product['name'],
@@ -68,52 +81,162 @@ LIMIT 1;";
             )));
             $online_product_id = $result;
 
+            //多语言同步
+            $stores = ['it','nl','pt','de','es','fr'];
+            //$stores = ['it','nl','de','es','fr'];
+            foreach ($stores as $_store) {
+                if($_store=='es'){
+                    $code = 'sp';
+                }else{
+                    $code = $_store;
+                }
+                $name_key = 'name_'.$_store;
+                $description_key = 'description_'.$_store;
+                $result = $client->call($session, 'catalog_product.update', array($product['sku'], array(
+                    'name' => $product[$name_key],
+                    'description' => $product[$description_key]
+                ),$code));
+            }
+
             //options 上傳
-            $customDropdownOption = array(
-                "title" => "Custom Dropdown Option Title",
-                "type" => "drop_down",
-                "is_require" => 1,
-                "sort_order" => 10,
-                "additional_fields" => array(
-                    array(
-                        "title" => "Dropdown row #1",
-                        "price" => 10.00,
+            $option_sql = "SELECT * FROM `product_option_vale`";
+            $statement = $em->getConnection()->prepare($option_sql);
+            $statement->execute();
+            $product_options = $statement->fetchAll();
+            $options = [];
+            foreach ($product_options as $_option) {
+                $options[$_option['value_id']] = $_option;
+            }
+            //颜色
+            $online_color = null;
+            if(!empty($product['color'])) {
+                $color_arr = explode(',', $product['color']);
+                $color_values = [];
+                foreach ($color_arr as $key => $_color) {
+                    $color_values[] = array(
+                        "title" => $options[$_color]['value'],
                         "price_type" => "fixed",
-                        "sku" => "custom_select_option_sku_1",
-                        "sort_order" => 0
-                    ),
-                    array(
-                        "title" => "Dropdown row #2",
-                        "price" => 10.00,
+                        "sort_order" => $key
+                    );
+                }
+
+                if (!empty($color_values)) {
+                    $customColorDropdownOption = array(
+                        "title" => "Color",
+                        "type" => "drop_down",
+                        "is_require" => 1,
+                        "sort_order" => 10,
+                        "additional_fields" => $color_values
+                    );
+                    $resultCustomDropdownOptionAdd = $client->call(
+                        $session,
+                        "product_custom_option.add",
+                        array(
+                            $online_product_id,
+                            $customColorDropdownOption
+                        )
+                    );
+                }
+                $online_color = $product['color'];
+            }
+            //尺码
+            $online_size = null;
+            if(!empty($product['size'])) {
+                $size_arr = explode(',', $product['size']);
+                $size_values = [];
+                foreach ($size_arr as $key => $_size) {
+                    $size_values[] = array(
+                        "title" => $options[$_size]['value'],
                         "price_type" => "fixed",
-                        "sku" => "custom_select_option_sku_2",
-                        "sort_order" => 5
-                    )
-                )
-            );
-            $resultCustomDropdownOptionAdd = $client->call(
-                $session,
-                "product_custom_option.add",
-                array(
-                    $online_product_id,
-                    $customDropdownOption
-                )
-            );
+                        "sort_order" => $key
+                    );
+                }
+                if (!empty($size_values)) {
+                    $customSizeDropdownOption = array(
+                        "title" => "Size",
+                        "type" => "drop_down",
+                        "is_require" => 1,
+                        "sort_order" => 20,
+                        "additional_fields" => $size_values
+                    );
+                    $resultCustomDropdownOptionAdd = $client->call(
+                        $session,
+                        "product_custom_option.add",
+                        array(
+                            $online_product_id,
+                            $customSizeDropdownOption
+                        )
+                    );
+                }
+                $online_size = $product['size'];
+            }
 
             //圖片上傳,base_64 encoded
-            $file = array(
-                'content' => '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAIBAQIBAQICAgICAgICAwUDAwMDAwYEBAMFBwYHBwcGBwcICQsJCAgKCAcHCg0KCgsMDAwMBwkODw0MDgsMDAz/2wBDAQICAgMDAwYDAwYMCAcIDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAz/wAARCAAXABcDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDLooor8XP4DCiiigAooooAKKKKAP/Z',
-                'mime' => 'image/jpeg'
-            );
+            if(!empty($product['main_image'])){
+                $main_image = explode(',',$product['main_image']);
+            }else{
+                $main_image = [];
+            }
+            if(!empty($product['addition_images'])){
+                $addition_images = explode(',',$product['addition_images']);
+            }else{
+                $addition_images = [];
+            }
 
-            $result = $client->call(
-                $session,
-                'catalog_product_attribute_media.create',
-                array(
-                    197,
-                    array('file'=>$file, 'label'=>'Label', 'position'=>'100', 'types'=>array('thumbnail','image','small_image'), 'exclude'=>0)
-                )
+            if($product_website['image_type']==1){
+                $product_images = array_merge($main_image,$addition_images);
+            }else{
+                $product_images = $addition_images;
+            }
+
+            $online_images = [];
+            foreach ($product_images as $key=>$_image) {
+                $file = $this->base64EncodeImage($_image);
+
+                if($key==0){
+                    $types = array('thumbnail', 'image', 'small_image');
+                }else{
+                    $types = array();
+                }
+
+                $result = $client->call(
+                    $session,
+                    'catalog_product_attribute_media.create',
+                    array(
+                        $online_product_id,
+                        array('file' => $file, 'label' => 'Label', 'position' => $key, 'types' => $types, 'exclude' => 0)
+                    )
+                );
+                $online_images[] = array(
+                    'position' => $key,
+                    'sys_image'=> $_image,
+                    'online_image'=> $result
+                );
+            }
+
+            //更新站点产品状态
+            $update_row = array(
+                'online_id'=>$online_product_id,
+                'online_color'=>$online_color,
+                'online_size'=>$online_size,
+                'online_images'=>json_encode($online_images),
+                'online_status'=>1
             );
+            $em->getConnection()->update('product_website',$update_row,array('website_id'=>$product_website['website_id'],'product_id'=>$product_id));
         }
+    }
+
+    /**
+     * @param $image
+     * @return array
+     * 产品图片转换成base_64 encoded
+     */
+    protected function base64EncodeImage($image){
+        $image_file = $this->getContainer()->getParameter('kernel.project_dir').'/public/media/catalog/product/'.$image;
+        $image_info = getimagesize($image_file);
+        $image_data = fread(fopen($image_file, 'r'), filesize($image_file));
+        $base64_image = chunk_split(base64_encode($image_data));
+        $result = array('content'=>$base64_image,'mime'=>$image_info['mime']);
+        return $result;
     }
 }
