@@ -320,6 +320,19 @@ class ProductController extends FOSRestController
             }else{
                 $_item['addition_images'] = [];
             }
+
+            $web_sql = "SELECT * FROM product_website AS pw
+LEFT JOIN website AS w ON pw.website_id=w.website_id
+WHERE pw.product_id=".$_item['product_id'];
+            $statement = $em->getConnection()->prepare($web_sql);
+            $statement->execute();
+            $websites = $statement->fetchAll();
+            $websites_status = array();
+            foreach($websites as $_website) {
+                $websites_status[] = array('name'=>$_website['website_name'],'status'=>$_website['online_status']);
+            }
+            $_item['websites_status'] = $websites_status;
+
             $item_result[$key] = $_item;
         }
 
