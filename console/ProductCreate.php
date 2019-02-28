@@ -85,7 +85,7 @@ LIMIT 1;";
             $stores = ['it','nl','pt','de','es','fr'];
             //$stores = ['it','nl','de','es','fr'];
             foreach ($stores as $_store) {
-                if($_store=='es'){
+                if($_store=='es'&&($product_website['website_id']==1||$product_website['website_id']==2)){
                     $code = 'sp';
                 }else{
                     $code = $_store;

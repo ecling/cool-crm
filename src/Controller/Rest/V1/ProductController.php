@@ -67,7 +67,7 @@ class ProductController extends FOSRestController
         $product->setDescription($postData['description']);
         $product->setColor($postData['color']);
         $product->setSize($postData['size']);
-        $product->setMainImage([]);
+        $product->setMainImage($main_image);
         $product->setAdditionImages($addition_images);
         $product->setCategoryIds($postData['category_ids']);
         $product->setCategory2Ids($postData['category2_ids']);
