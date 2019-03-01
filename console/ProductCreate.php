@@ -63,166 +63,175 @@ LIMIT 1;";
             $client = new \SoapClient($product_website['api_url']);
             $session = $client->login($product_website['api_user'], $product_website['api_key']);
 
-            //产品基础资料上传
-            $result = $client->call($session, 'catalog_product.create', array('simple', 4, $product['sku'], array(
-                'categories' => $categorys,
-                'websites' => array(1),
-                'name' => $product['name'],
-                'description' => $product['description'],
-                'weight' => $product['weight'],
-                'status' => '1',
-                'visibility' => '4',
-                'price' => $product['purchase_price'],
-                'purchase_price'=> $product['purchase_price'],
-                'shipping_cost' => $product['shipping_cost'],
-                'tax_class_id' => 1,
-                'options_container' => 'container1',
-                'stock_data' => array('qty'=>$product['qty'],'is_in_stock'=>1,'manage_stock'=>1,'use_config_manage_stock '=>1)
-            )));
-            $online_product_id = $result;
+            try {
+                //产品基础资料上传
+                $result = $client->call($session, 'catalog_product.create', array('simple', 4, $product['sku'], array(
+                    'categories' => $categorys,
+                    'websites' => array(1),
+                    'name' => $product['name'],
+                    'description' => $product['description'],
+                    'weight' => $product['weight'],
+                    'status' => '1',
+                    'visibility' => '4',
+                    'price' => $product['purchase_price'],
+                    'purchase_price' => $product['purchase_price'],
+                    'shipping_cost' => $product['shipping_cost'],
+                    'tax_class_id' => 1,
+                    'options_container' => 'container1',
+                    'stock_data' => array('qty' => $product['qty'], 'is_in_stock' => 1, 'manage_stock' => 1, 'use_config_manage_stock ' => 1)
+                )));
+                $online_product_id = $result;
 
-            //多语言同步
-            $stores = ['it','nl','pt','de','es','fr'];
-            //$stores = ['it','nl','de','es','fr'];
-            foreach ($stores as $_store) {
-                if($_store=='es'&&($product_website['website_id']==1||$product_website['website_id']==2)){
-                    $code = 'sp';
-                }else{
-                    $code = $_store;
-                }
-                $name_key = 'name_'.$_store;
-                $description_key = 'description_'.$_store;
-                $result = $client->call($session, 'catalog_product.update', array($product['sku'], array(
-                    'name' => $product[$name_key],
-                    'description' => $product[$description_key]
-                ),$code));
-            }
-
-            //options 上傳
-            $option_sql = "SELECT * FROM `product_option_vale`";
-            $statement = $em->getConnection()->prepare($option_sql);
-            $statement->execute();
-            $product_options = $statement->fetchAll();
-            $options = [];
-            foreach ($product_options as $_option) {
-                $options[$_option['value_id']] = $_option;
-            }
-            //颜色
-            $online_color = null;
-            if(!empty($product['color'])) {
-                $color_arr = explode(',', $product['color']);
-                $color_values = [];
-                foreach ($color_arr as $key => $_color) {
-                    $color_values[] = array(
-                        "title" => $options[$_color]['value'],
-                        "price_type" => "fixed",
-                        "sort_order" => $key
-                    );
+                //多语言同步
+                $stores = ['it', 'nl', 'pt', 'de', 'es', 'fr'];
+                //$stores = ['it','nl','de','es','fr'];
+                foreach ($stores as $_store) {
+                    if ($_store == 'es' && ($product_website['website_id'] == 1 || $product_website['website_id'] == 2)) {
+                        $code = 'sp';
+                    } else {
+                        $code = $_store;
+                    }
+                    $name_key = 'name_' . $_store;
+                    $description_key = 'description_' . $_store;
+                    $result = $client->call($session, 'catalog_product.update', array($product['sku'], array(
+                        'name' => $product[$name_key],
+                        'description' => $product[$description_key]
+                    ), $code));
                 }
 
-                if (!empty($color_values)) {
-                    $customColorDropdownOption = array(
-                        "title" => "Color",
-                        "type" => "drop_down",
-                        "is_require" => 1,
-                        "sort_order" => 10,
-                        "additional_fields" => $color_values
-                    );
-                    $resultCustomDropdownOptionAdd = $client->call(
+                //options 上傳
+                $option_sql = "SELECT * FROM `product_option_vale`";
+                $statement = $em->getConnection()->prepare($option_sql);
+                $statement->execute();
+                $product_options = $statement->fetchAll();
+                $options = [];
+                foreach ($product_options as $_option) {
+                    $options[$_option['value_id']] = $_option;
+                }
+                //颜色
+                $online_color = null;
+                if (!empty($product['color'])) {
+                    $color_arr = explode(',', $product['color']);
+                    $color_values = [];
+                    foreach ($color_arr as $key => $_color) {
+                        $color_values[] = array(
+                            "title" => $options[$_color]['value'],
+                            "price_type" => "fixed",
+                            "sort_order" => $key
+                        );
+                    }
+
+                    if (!empty($color_values)) {
+                        $customColorDropdownOption = array(
+                            "title" => "Color",
+                            "type" => "drop_down",
+                            "is_require" => 1,
+                            "sort_order" => 10,
+                            "additional_fields" => $color_values
+                        );
+                        $resultCustomDropdownOptionAdd = $client->call(
+                            $session,
+                            "product_custom_option.add",
+                            array(
+                                $online_product_id,
+                                $customColorDropdownOption
+                            )
+                        );
+                    }
+                    $online_color = $product['color'];
+                }
+                //尺码
+                $online_size = null;
+                if (!empty($product['size'])) {
+                    $size_arr = explode(',', $product['size']);
+                    $size_values = [];
+                    foreach ($size_arr as $key => $_size) {
+                        $size_values[] = array(
+                            "title" => $options[$_size]['value'],
+                            "price_type" => "fixed",
+                            "sort_order" => $key
+                        );
+                    }
+                    if (!empty($size_values)) {
+                        $customSizeDropdownOption = array(
+                            "title" => "Size",
+                            "type" => "drop_down",
+                            "is_require" => 1,
+                            "sort_order" => 20,
+                            "additional_fields" => $size_values
+                        );
+                        $resultCustomDropdownOptionAdd = $client->call(
+                            $session,
+                            "product_custom_option.add",
+                            array(
+                                $online_product_id,
+                                $customSizeDropdownOption
+                            )
+                        );
+                    }
+                    $online_size = $product['size'];
+                }
+
+                //圖片上傳,base_64 encoded
+                if (!empty($product['main_image'])) {
+                    $main_image = explode(',', $product['main_image']);
+                } else {
+                    $main_image = [];
+                }
+                if (!empty($product['addition_images'])) {
+                    $addition_images = explode(',', $product['addition_images']);
+                } else {
+                    $addition_images = [];
+                }
+
+                if ($product_website['image_type'] == 1) {
+                    $product_images = array_merge($main_image, $addition_images);
+                } else {
+                    $product_images = $addition_images;
+                }
+
+                $online_images = [];
+                foreach ($product_images as $key => $_image) {
+                    $file = $this->base64EncodeImage($_image);
+
+                    if ($key == 0) {
+                        $types = array('thumbnail', 'image', 'small_image');
+                    } else {
+                        $types = array();
+                    }
+
+                    $result = $client->call(
                         $session,
-                        "product_custom_option.add",
+                        'catalog_product_attribute_media.create',
                         array(
                             $online_product_id,
-                            $customColorDropdownOption
+                            array('file' => $file, 'label' => 'Label', 'position' => $key, 'types' => $types, 'exclude' => 0)
                         )
                     );
-                }
-                $online_color = $product['color'];
-            }
-            //尺码
-            $online_size = null;
-            if(!empty($product['size'])) {
-                $size_arr = explode(',', $product['size']);
-                $size_values = [];
-                foreach ($size_arr as $key => $_size) {
-                    $size_values[] = array(
-                        "title" => $options[$_size]['value'],
-                        "price_type" => "fixed",
-                        "sort_order" => $key
+                    $online_images[] = array(
+                        'position' => $key,
+                        'sys_image' => $_image,
+                        'online_image' => $result
                     );
                 }
-                if (!empty($size_values)) {
-                    $customSizeDropdownOption = array(
-                        "title" => "Size",
-                        "type" => "drop_down",
-                        "is_require" => 1,
-                        "sort_order" => 20,
-                        "additional_fields" => $size_values
-                    );
-                    $resultCustomDropdownOptionAdd = $client->call(
-                        $session,
-                        "product_custom_option.add",
-                        array(
-                            $online_product_id,
-                            $customSizeDropdownOption
-                        )
-                    );
-                }
-                $online_size = $product['size'];
-            }
 
-            //圖片上傳,base_64 encoded
-            if(!empty($product['main_image'])){
-                $main_image = explode(',',$product['main_image']);
-            }else{
-                $main_image = [];
-            }
-            if(!empty($product['addition_images'])){
-                $addition_images = explode(',',$product['addition_images']);
-            }else{
-                $addition_images = [];
-            }
-
-            if($product_website['image_type']==1){
-                $product_images = array_merge($main_image,$addition_images);
-            }else{
-                $product_images = $addition_images;
-            }
-
-            $online_images = [];
-            foreach ($product_images as $key=>$_image) {
-                $file = $this->base64EncodeImage($_image);
-
-                if($key==0){
-                    $types = array('thumbnail', 'image', 'small_image');
-                }else{
-                    $types = array();
-                }
-
-                $result = $client->call(
-                    $session,
-                    'catalog_product_attribute_media.create',
-                    array(
-                        $online_product_id,
-                        array('file' => $file, 'label' => 'Label', 'position' => $key, 'types' => $types, 'exclude' => 0)
-                    )
+                //更新站点产品状态
+                $update_row = array(
+                    'online_id' => $online_product_id,
+                    'online_color' => $online_color,
+                    'online_size' => $online_size,
+                    'online_images' => json_encode($online_images),
+                    'online_status' => 1
                 );
-                $online_images[] = array(
-                    'position' => $key,
-                    'sys_image'=> $_image,
-                    'online_image'=> $result
+                $em->getConnection()->update('product_website', $update_row, array('website_id' => $product_website['website_id'], 'product_id' => $product_id));
+            }catch (\Exception $e) {
+                $fail_message = $e->getMessage();
+                $update_row = array(
+                    'fail_message' => $fail_message,
+                    'online_status' => 6
                 );
+                $em->getConnection()->update('product_website', $update_row, array('website_id' => $product_website['website_id'], 'product_id' => $product_id));
             }
-
-            //更新站点产品状态
-            $update_row = array(
-                'online_id'=>$online_product_id,
-                'online_color'=>$online_color,
-                'online_size'=>$online_size,
-                'online_images'=>json_encode($online_images),
-                'online_status'=>1
-            );
-            $em->getConnection()->update('product_website',$update_row,array('website_id'=>$product_website['website_id'],'product_id'=>$product_id));
         }
     }
 

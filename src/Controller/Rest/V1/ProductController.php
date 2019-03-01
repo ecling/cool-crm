@@ -268,7 +268,12 @@ class ProductController extends FOSRestController
 
         $page = $request->query->get('page');
         $limit = $request->query->get('limit');
-        $sql = "SELECT * FROM product where `status`!=0 order by product_id DESC limit ".($page-1)*$limit.",".$limit;
+        $sku = $request->query->get('title');
+        if($sku = trim($sku)){
+            $sql = "SELECT * FROM product where `status`!=0 and sku LIKE '%".$sku."%' order by product_id DESC limit ".($page-1)*$limit.",".$limit;
+        }else {
+            $sql = "SELECT * FROM product where `status`!=0 order by product_id DESC limit " . ($page - 1) * $limit . "," . $limit;
+        }
         $statement = $em->getConnection()->prepare($sql);
         $statement->execute();
         $item_result = $statement->fetchAll();
