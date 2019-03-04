@@ -65,7 +65,7 @@ class ProductTranslate extends ContainerAwareCommand{
             $des_query = '';
             $index = 0;
             for($i=0;$i<count($orig_description_row);$i++){
-                if(preg_match("/(<[^>]+?>)/si",$orig_description_row[$i])||preg_match("/^[\s]*?[\s]$/si",$orig_description_row[$i])||(trim($orig_description_row[$i])=='&nbsp;')){
+                if(preg_match("/(<[^>]+?>)/si",$orig_description_row[$i])||preg_match("/^[\s]*?[\s]$/si",$orig_description_row[$i])||(trim($orig_description_row[$i])=='&nbsp;'||is_numeric($orig_description_row[$i]))){
 
                 }else{
                     $des_query .= '&q='.rawurlencode($orig_description_row[$i]);
@@ -88,7 +88,7 @@ class ProductTranslate extends ContainerAwareCommand{
             //重新组合描述
             $new_description = '';
             foreach ($orig_description_row as $key=>$row){
-                if(preg_match("/(<[^>]+?>)/si",$row)||preg_match("/^[\s]*?[\s]$/si",$row)||(trim($row)=='&nbsp;')){
+                if(preg_match("/(<[^>]+?>)/si",$row)||preg_match("/^[\s]*?[\s]$/si",$row)||(trim($row)=='&nbsp;'||is_numeric($row))){
                     $new_description .= $row;
                 }else{
                     if(isset($des_tran_index[$key])){
