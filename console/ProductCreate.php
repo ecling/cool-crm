@@ -229,6 +229,10 @@ LIMIT 1;";
                 $fail_message = $e->getMessage();
                 $fail_count = (int)$product_website['fail_count']+1;
                 $update_row = array(
+                    'online_id' => $online_product_id,
+                    'online_color' => $online_color,
+                    'online_size' => $online_size,
+                    'online_images' => json_encode($online_images),
                     'fail_message' => $fail_message,
                     'fail_count' => $fail_count,
                     'online_status' => 6
