@@ -246,7 +246,7 @@ class ProductController extends FOSRestController
                 $product = $statement->fetch();
                 if(!$product){
                     //状态4资料待完善
-                    $row = array('sku'=>$item['SKU'],'purchase_price'=>$item['cost'],'weight'=>$item['weight'],'qty'=>9999,'status'=>4);
+                    $row = array('sku'=>$item['SKU'],'purchase_price'=>$item['cost'],'weight'=>$item['weight'],'qty'=>9999,'website_ids'=>'1,2,3,4,5','status'=>4);
                     $em->getConnection()->insert('product',$row);
                 }
             }

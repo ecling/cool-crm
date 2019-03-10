@@ -26,11 +26,19 @@ class ProductUpdate extends ContainerAwareCommand{
     {
         $em = $this->getContainer()->get('doctrine');
 
-        //查询待上传产品，站点状态为3，产品状态为1
+        //查询待更新产品，站点状态为6同步失败，需要再次更新，产品状态为1
+        /*
         $sql = "SELECT pw.*,w.* FROM `product_website` AS pw
 LEFT JOIN `product` AS p ON pw.`product_id`=p.`product_id`
 LEFT JOIN `website` AS w ON w.`website_id`= pw.`website_id`
 WHERE pw.`online_status`=6 AND p.`status`=1
+LIMIT 1";
+        */
+        $sql = "SELECT pw.*,w.* FROM `product_website` AS pw
+LEFT JOIN `product` AS p ON pw.`product_id`=p.`product_id`
+LEFT JOIN `website` AS w ON w.`website_id`= pw.`website_id`
+WHERE pw.`online_status`=4 AND p.`status`=1
+ORDER BY p.product_id DESC
 LIMIT 1";
         $statement = $em->getConnection()->prepare($sql);
         $statement->execute();
@@ -38,6 +46,7 @@ LIMIT 1";
 
         if($product_website){
             $product_id = $product_website['product_id'];
+            $online_product_id = $product_website['online_id'];
             $product_sql = "SELECT * FROM product AS p
 LEFT JOIN product_lang AS l ON p.product_id=l.product_id
 WHERE p.product_id=$product_id
@@ -63,17 +72,20 @@ LIMIT 1;";
             $client = new \SoapClient($product_website['api_url']);
             $session = $client->login($product_website['api_user'], $product_website['api_key']);
 
-            try{
-                //如果查询状态是6，则查询产品是否存在
-                $result = $client->call($session, 'catalog_product.info', $product['sku']);
-                $online_product_id = $result['product_id'];
-            }catch (\Exception $e) {
-                $fail_message = $e->getMessage();
-                $update_row = array(
-                    'fail_message' => $fail_message,
-                    'online_status' => 3
-                );
-                $em->getConnection()->update('product_website', $update_row, array('website_id' => $product_website['website_id'], 'product_id' => $product_id));
+
+            if(empty($online_product_id)) {
+                try {
+                    //如果查询状态是6，则查询产品是否存在
+                    $result = $client->call($session, 'catalog_product.info', $product['sku']);
+                    $online_product_id = $result['product_id'];
+                } catch (\Exception $e) {
+                    $fail_message = $e->getMessage();
+                    $update_row = array(
+                        'fail_message' => $fail_message,
+                        'online_status' => 3
+                    );
+                    $em->getConnection()->update('product_website', $update_row, array('website_id' => $product_website['website_id'], 'product_id' => $product_id));
+                }
             }
 
             try {
@@ -97,7 +109,7 @@ LIMIT 1;";
                 */
 
 
-                if(isset($online_product_id)) {
+                if(!empty($online_product_id)) {
                     //options 上傳
                     if ($product['color'] != $product_website['online_color'] || $product['size'] != $product_website['online_size']) {
                         $result = $client->call($session, 'product_custom_option.list', $online_product_id);
@@ -200,6 +212,7 @@ LIMIT 1;";
                     }
 
                     $online_images = json_decode($product_website['online_images'],true);
+                    $new_online_images = [];
                     if(empty($online_images)){
                         $online_images = array();
                         $result = $client->call($session, 'catalog_product_attribute_media.list', $online_product_id);
@@ -214,7 +227,8 @@ LIMIT 1;";
                         }
                     }
                     foreach ($online_images as $key => $_img) {
-                        if ($position = array_search($_img['sys_image'], $product_images)) {
+                        $position = array_search($_img['sys_image'], $product_images);
+                        if ($position !== false) {
                             if ($position != $_img['position']) {
                                 if ($position == 0) {
                                     $types = array('thumbnail', 'image', 'small_image');
@@ -230,15 +244,15 @@ LIMIT 1;";
                                         array('position' => $position, 'types' => $types)
                                     )
                                 );
-                                $online_images[$key]['position'] = $position;
+                                $_img['position'] = $position;
                             }
+                            $new_online_images[] = $_img;
                         } else {
                             $result = $client->call(
                                 $session,
                                 'catalog_product_attribute_media.remove',
                                 array('product' => $online_product_id, 'file' => $_img['online_image'])
                             );
-                            unset($online_images[$key]);
                         }
                     }
 
@@ -271,7 +285,7 @@ LIMIT 1;";
                                 array('file' => $file, 'label' => 'Label', 'position' => $key, 'types' => $types, 'exclude' => 0)
                             )
                         );
-                        $online_images[] = array(
+                        $new_online_images[] = array(
                             'position' => $key,
                             'sys_image' => $_image,
                             'online_image' => $result
@@ -290,8 +304,8 @@ LIMIT 1;";
                     if(isset($online_size)){
                         $update_row['online_size'] = $online_size;
                     }
-                    if(isset($online_images)){
-                        $update_row['online_images'] = json_encode($online_images);
+                    if(isset($new_online_images)){
+                        $update_row['online_images'] = json_encode($new_online_images);
                     }
                     $em->getConnection()->update('product_website', $update_row, array('website_id' => $product_website['website_id'], 'product_id' => $product_id));
                 }
@@ -308,8 +322,8 @@ LIMIT 1;";
                 if(isset($online_size)){
                     $update_row['online_size'] = $online_size;
                 }
-                if(isset($online_images)){
-                    $update_row['online_images'] = json_encode($online_images);
+                if(isset($new_online_images)){
+                    $update_row['online_images'] = json_encode($new_online_images);
                 }
                 $em->getConnection()->update('product_website', $update_row, array('website_id' => $product_website['website_id'], 'product_id' => $product_id));
             }
