@@ -110,6 +110,14 @@ LIMIT 1;";
 
 
                 if(!empty($online_product_id)) {
+                    //更新基础资料
+                    $result = $client->call($session, 'catalog_product.update', array($online_product_id, array(
+                        'weight' => $product['weight'],
+                        'price' => $product['purchase_price'],
+                        'purchase_price' => $product['purchase_price'],
+                        'shipping_cost' => $product['shipping_cost'],
+                    )));
+
                     //options 上傳
                     if ($product['color'] != $product_website['online_color'] || $product['size'] != $product_website['online_size']) {
                         $result = $client->call($session, 'product_custom_option.list', $online_product_id);
